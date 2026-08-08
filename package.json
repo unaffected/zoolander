@@ -1,0 +1,79 @@
+{
+  "name": "zoolander",
+  "productName": "Zoolander",
+  "description": "Visual data modeler with schema-generated forms and a local SQLite database.",
+  "author": "Unaffected Studios <cody@unaffectedstudios.com>",
+  "license": "MIT",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "bun test",
+    "electron:compile": "bun build ./electron/main.ts --outfile=dist-electron/main.js --format=esm --target=node --external=electron && bun build ./electron/preload.ts --outfile=dist-electron/preload.cjs --format=cjs --target=node --external=electron",
+    "electron:dev": "bun run electron:compile && ZOOLANDER_DEV_URL=http://localhost:5173 bunx electron .",
+    "electron": "bun run build && bun run electron:compile && bunx electron .",
+    "electron:smoke": "bun run build && bun run electron:compile && ZOOLANDER_SMOKE=1 bunx electron .",
+    "dist": "bun run build && bun run electron:compile && bunx electron-builder",
+    "dist:dir": "bun run build && bun run electron:compile && bunx electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.unaffectedstudios.zoolander",
+    "productName": "Zoolander",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@base-ui/react": "^1.7.0",
+    "@dagrejs/dagre": "^3.1.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@rjsf/core": "^6.7.1",
+    "@rjsf/shadcn": "^6.7.1",
+    "@rjsf/utils": "^6.7.1",
+    "@rjsf/validator-ajv8": "^6.7.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/adm-zip": "^0.5.8",
+    "@types/bun": "^1.3.14",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@xyflow/react": "^12.11.2",
+    "adm-zip": "^0.6.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.0.12",
+    "lucide-react": "^1.30.0",
+    "next-themes": "^0.4.6",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "shadcn": "^4.16.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "zustand": "^5.0.14"
+  }
+}
