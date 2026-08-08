@@ -215,14 +215,14 @@ export function Inspector({ onAddRelation }: { onAddRelation: (sourceId: string)
                   <span className="font-mono">{objectName(rel.sourceId)}</span> extends this
                 </span>
               ) : (
-                <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                  <span className="truncate font-mono">
-                    {objectName(rel.sourceId)}.{rel.propertyName}
-                  </span>
+                <span
+                  className="flex min-w-0 items-center gap-1.5 text-muted-foreground"
+                  title={`${objectName(rel.sourceId)}.${rel.propertyName}`}
+                >
+                  <span className="truncate font-mono">{rel.propertyName}</span>
                   <Badge variant="outline" className="shrink-0 text-[10px]">
                     {rel.cardinality === 'many' ? 'Multiple' : 'Single'}
                   </Badge>
-                  <span className="shrink-0">references this</span>
                 </span>
               )}
             </span>
