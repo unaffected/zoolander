@@ -262,6 +262,16 @@ async function createWindow() {
           await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
+      if (process.env.ZOOLANDER_SMOKE_INSPECT) {
+        // Select a canvas node by name so screenshots capture its inspector.
+        await win.webContents.executeJavaScript(`(async () => {
+          const name = ${JSON.stringify(process.env.ZOOLANDER_SMOKE_INSPECT)}
+          const node = [...document.querySelectorAll('.react-flow__node')]
+            .find((n) => n.textContent.includes(name))
+          node?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          await new Promise((r) => setTimeout(r, 500))
+        })()`)
+      }
       if (process.env.ZOOLANDER_SMOKE_LINK === '1') {
         // Record links must navigate to the target resource's table and
         // highlight the linked row.

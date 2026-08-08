@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronRight, Trash2, Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import type { Property, ScalarType } from '@/model/types'
 import { SCALAR_TYPES, STRING_FORMATS } from '@/model/types'
+import { cn } from '@/lib/utils'
 import { useStore } from '@/state/store'
 
 const WIDTH_KEY = 'zoolander.ui.inspectorWidth'
@@ -74,9 +75,48 @@ export function Inspector({ onAddRelation }: { onAddRelation: (sourceId: string)
 
   if (!object) return null
 
-  const outgoing = model.relations.filter((r) => r.sourceId === object.id)
-  const incoming = model.relations.filter((r) => r.targetId === object.id && r.sourceId !== object.id)
   const objectName = (id: string) => model.objects.find((o) => o.id === id)?.name ?? '?'
+
+  // One row per relation: name + type, node-card notation (Type / Type[]).
+  // Dashed rows are fields living on another resource that point here.
+  const suffix = (cardinality: 'one' | 'many') => (cardinality === 'many' ? '[]' : '')
+  const relationRows = [
+    ...model.relations
+      .filter((r) => r.sourceId === object.id)
+      .map((rel) => ({
+        id: rel.id,
+        name: rel.kind === 'inheritance' ? 'extends' : rel.propertyName,
+        type:
+          rel.kind === 'inheritance'
+            ? objectName(rel.targetId)
+            : objectName(rel.targetId) + suffix(rel.cardinality),
+        external: false,
+        title: undefined as string | undefined,
+      })),
+    ...model.relations
+      .filter((r) => r.targetId === object.id && r.sourceId !== object.id)
+      .map((rel) =>
+        rel.kind !== 'inheritance' && rel.inverse
+          ? {
+              // The inverse is this resource's own field.
+              id: rel.id,
+              name: rel.inverse.propertyName,
+              type: objectName(rel.sourceId) + suffix(rel.inverse.cardinality),
+              external: false,
+              title: undefined as string | undefined,
+            }
+          : {
+              id: rel.id,
+              name: rel.kind === 'inheritance' ? 'extended by' : rel.propertyName,
+              type:
+                rel.kind === 'inheritance'
+                  ? objectName(rel.sourceId)
+                  : object.name + suffix(rel.cardinality),
+              external: true,
+              title: `${objectName(rel.sourceId)}.${rel.propertyName}`,
+            },
+      ),
+  ]
 
   const commitName = () => {
     if (nameDraft === object.name) return
@@ -172,75 +212,30 @@ export function Inspector({ onAddRelation }: { onAddRelation: (sourceId: string)
         </Button>
       </div>
       <div className="space-y-2">
-        {outgoing.map((rel) => (
-          <div key={rel.id} className="flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-xs">
-            <span className="min-w-0">
-              {rel.kind === 'inheritance' ? (
-                <span className="truncate">
-                  Extends <span className="font-mono">{objectName(rel.targetId)}</span>
-                </span>
-              ) : (
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate font-mono">{rel.propertyName}</span>
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">
-                    {rel.cardinality === 'many' ? 'Multiple' : 'Single'}
-                  </Badge>
-                  <span className="truncate font-mono text-muted-foreground">
-                    {objectName(rel.targetId)}
-                  </span>
-                  {rel.inverse && (
-                    <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
-                      ⇄ {rel.inverse.propertyName}
-                    </Badge>
-                  )}
-                </span>
-              )}
-            </span>
+        {relationRows.map((row) => (
+          <div
+            key={row.id}
+            title={row.title}
+            className={cn(
+              'flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-xs',
+              row.external && 'border-dashed text-muted-foreground',
+            )}
+          >
+            <span className="truncate font-mono">{row.name}</span>
+            <span className="ml-auto shrink-0 font-mono text-muted-foreground">{row.type}</span>
             <Button
               variant="ghost"
               size="icon"
               className="size-6 shrink-0"
               aria-label="Delete relation"
-              onClick={() => deleteRelation(rel.id)}
+              onClick={() => deleteRelation(row.id)}
             >
               <Trash2 className="size-3 text-destructive" />
             </Button>
           </div>
         ))}
-        {incoming.map((rel) => (
-          <div key={rel.id} className="flex items-center justify-between gap-2 rounded border border-dashed px-2 py-1.5 text-xs">
-            <span className="min-w-0">
-              {rel.kind === 'inheritance' ? (
-                <span className="truncate text-muted-foreground">
-                  <span className="font-mono">{objectName(rel.sourceId)}</span> extends this
-                </span>
-              ) : (
-                <span
-                  className="flex min-w-0 items-center gap-1.5 text-muted-foreground"
-                  title={`${objectName(rel.sourceId)}.${rel.propertyName}`}
-                >
-                  <span className="truncate font-mono">{rel.propertyName}</span>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">
-                    {rel.cardinality === 'many' ? 'Multiple' : 'Single'}
-                  </Badge>
-                </span>
-              )}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 shrink-0"
-              aria-label="Delete relation"
-              onClick={() => deleteRelation(rel.id)}
-            >
-              <Trash2 className="size-3 text-destructive" />
-            </Button>
-          </div>
-        ))}
-        {outgoing.length === 0 && incoming.length === 0 && (
-          <p className="text-xs text-muted-foreground italic">
-            Add a relation here, or drag from this node's right handle to another node.
-          </p>
+        {relationRows.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">No relations yet.</p>
         )}
       </div>
     </aside>
